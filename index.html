@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>超级抽抽乐</title>
 <style>
-  /* 整体页面样式：浅紫底色（#ceb1f0）衬托中间的街机界面 */
+  /* 页面底色：浅紫（#ceb1f0） */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     height: 100%;
     background: #ceb1f0;
     font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-    overflow: hidden;               /* 3D 旋转时禁用滚动，防止背景乱动 */
+    overflow: hidden;               /* 3D 旋转时禁用滚动 */
   }
   body {
     position: fixed;                  /* 3D 旋转的锚点容器 */
@@ -25,25 +25,18 @@
     touch-action: manipulation;
     overscroll-behavior: contain;
   }
-  /* 点击按钮不要出现灰色框：
-     1) -webkit-tap-highlight-color 去掉手机浏览器的半透明灰块
-     2) outline:none 去掉电脑浏览器点击后的焦点描边 */
   button {
     -webkit-tap-highlight-color: transparent;
     outline: none;
   }
   button:focus, button:focus-visible, button:active { outline: none; }
-  /* #stage 是 3D 旋转的“画布”，里面放 canvas + 按钮。
-     尺寸 900×506.25 与背景图 night.png(1920×1080) 严格同比例（16:9），
-     整张街机设计图（紫框、标题、侧边按钮位）铺在舞台上，
-     canvas 只盖住中间的夜空屏幕区，功能按钮对齐图中对应位置。 */
   #stage {
     position: relative;
     width: 900px;                     /* 原始设计宽度，旋转时作为基准 */
-    height: 506.25px;                 /* =900×9/16，与背景图同比例，不变形 */
+    height: 506.25px;                 /* =900×9/16，与背景图同比例 */
     transform-origin: center center;
-    /* 旋转时保持宽高比，由 JS 计算 scale */
-    background-image: url("slot_assets/night.png");  /* 默认夜晚街机图 */
+    /* 旋转时保持宽高比 */
+    background-image: url("slot_assets/night.png");  /* 默认夜晚图 */
     background-size: 100% 100%;
     background-repeat: no-repeat;
     transition: background-image 0.3s;
@@ -52,25 +45,20 @@
   canvas {
     display: block;
     position: absolute;
-    /* 精确对齐背景图中央屏幕（夜空+草地）区域：
-       图片坐标 288,152,1322,773 ×0.46875 后约 135,71,620,362；
-       canvas 内部是 900×560（比例1.607），按高度等比放进屏幕框，
-       宽度584居中，避免滚轮被横向拉扁。 */
     left: 153px;
     top: 71px;
     width: 584px;
     height: 363px;
     border-radius: 8px;
     /* 游戏画布的触摸完全由代码处理，页面也不滚动：
-       none 让浏览器不再判定“是滚动还是点按”，点下去立即响应，零延迟 */
+       none 让浏览器不再判定“是滚动还是点按”，点下去立即响应 */
     touch-action: none;
     /* 画布自身透明：夜空来自舞台背景图，白天/夜晚切换只换舞台背景 */
     background: transparent;
   }
   /* ---------- 图中已有按钮的透明热区 ----------
-     背景 night/day.png 里已经画好了 GO!、红−绿＋、月亮药丸的外观，
-     HTML 按钮一律做成透明热区盖在对应位置上，只负责接住点击，不重绘任何外观。
-     电脑上鼠标悬停会显示一圈虚线，方便确认热区位置（手机触摸没有悬停，无影响）。 */
+    HTML 按钮做成透明热区盖在背景画好的对应位置上，只负责接住点击。
+    电脑上鼠标悬停会显示一圈虚线，方便确认热区位置（手机触摸没有悬停，无影响）。 */
   #btnGo, .side-reel, #bgToggle, .hotspot {
     background: transparent;
     border: 0;
@@ -83,7 +71,7 @@
     outline: 1px dashed rgba(255, 255, 255, 0.5);
     outline-offset: -2px;
   }
-  /* ---------- 右侧 GO! 按钮（开始抽奖判定在这里；图中白色方框 1700,210-1860,322） ---------- */
+  /* ---------- 右侧 GO! 按钮（开始抽奖判定在这里） ---------- */
   #btnGo {
     position: absolute;
     right: 24px;
@@ -95,32 +83,32 @@
     color: transparent;              /* 按钮文字由背景图提供，热区自身不显示 */
   }
   #btnGo:disabled { cursor: default; }
-  /* ---------- 右侧红 − 绿 ＋ 滚轮数量热区（图中红钮 1694,480-1752,520、绿钮 1796,476-1860,524） ---------- */
+  /* ---------- 右侧红 − 绿 ＋ 滚轮数量热区 ---------- */
   .side-reel {
     position: absolute;
     width: 56px;
-    height: 60px;                 /* 放大触摸区补偿舞台缩放（舞台在手机上约缩到 0.66，60px→约40px） */
-    margin-top: -14px;            /* 把 60px 高热区垂直居中对齐图中 32px 高的按钮 */
+    height: 60px;                 /* 放大触摸区补偿舞台缩放（舞台在手机上约缩到约40px） */
+    margin-top: -14px;            /* 把 60px 高热区垂直居中对齐图中按钮 */
     z-index: 6;
     color: transparent;
   }
   .side-reel:disabled { cursor: default; }
   #btnReelMinus { right: 68px; top: 219px; }
   #btnReelPlus  { right: 18px; top: 219px; }
-  /* ---------- 右下昼夜切换热区（图中黑色药丸 1378,972-1534,1004） ---------- */
+  /* ---------- 右下昼夜切换热区 ---------- */
   #bgToggle {
     position: absolute;
     right: 173px;
     top: 436px;                   /* 配合 52px 高度居中 */
     z-index: 6;
     width: 96px;
-    height: 52px;                 /* 放大触摸区补偿缩放（52px×0.66≈34px 渲染） */
-    font-size: 0;                    /* 彻底隐藏旧 emoji 文字，昼夜状态由背景图本身表达 */
+    height: 52px;                 /* 放大触摸区补偿缩放*/
+    font-size: 0;                    
   }
-  /* ---------- 右上“秋”开发者入口 logo（透明热区，盖在背景图的小“秋”字上） ---------- */
+  /* ---------- 右上开发者入口 logo（透明热区） ---------- */
   #btnDevLogo {
     position: absolute;
-    right: 133px;      /* 背景图小字 1572,106-1592,126，放大热区便于点按 */
+    right: 133px;      /* 背景图小字，放大热区便于点按 */
     top: 27px;
     width: 52px;
     height: 52px;
@@ -133,30 +121,27 @@
     touch-action: manipulation;
   }
   #btnDevLogo:hover { outline: 1px dashed rgba(255, 255, 255, 0.6); }
-  /* ---------- 左侧三个粉色按钮的透明热区（外观画在背景图里） ----------
-     图中实测（1920×1080）：三个按钮 x 58-240，
-     批量导入 y194-266、单次导入 y295-374、保存范围 y396-475，×0.46875 得舞台坐标 */
+  /* ---------- 左侧三个按钮的透明热区 ---------- */
   .hotspot {
     position: absolute;
     left: 27px;
     width: 86px;
-    height: 48px;                /* 放大触摸区补偿缩放（48px×0.66≈32px 渲染），负 margin 居中对齐图中按钮 */
-    margin-top: -6px;            /* 把 48px 高热区垂直居中对齐图中约 34px 高的粉钮（相邻留 1px 缝） */
+    height: 48px;                /* 放大触摸区缩放 */
+    margin-top: -6px;            /* 把高热区垂直居中对齐图中按钮 */
     z-index: 6;
   }
   #btnBatchImport  { top: 91px; }
   #btnSingleImport { top: 138px; }
   #btnSaveScope    { top: 186px; }
-  /* 右侧“使用说明”粉钮（图中 x1680-1871,y367-446） */
+  /* 右侧“使用说明”按钮 */
   #btnManual { left: auto; right: 23px; top: 164px; width: 96px; height: 52px; margin-top: -8px; }
 
-  /* ---------- 弹窗内统一软框：淡紫 50% 底 + 粉色勾边（替代旧深灰底框） ---------- */
+  /* ---------- 弹窗内统一软框：淡紫底 + 粉色勾边 ---------- */
   #mediaBox, #folderNameInput, #itemsEditor, #manualBody {
     background: rgba(202, 161, 250, 0.5);
     border: 2px solid #f078c8;
   }
-  /* ---------- 左侧灰色区域：已有抽奖范围列表 ----------
-     图中灰框实测 x67-240、y504-900 → 舞台 left31 top236 w81 h186，内缩 2px 防压住边框 */
+  /* ---------- 左侧灰色区域：已有抽奖范围列表 ---------- */
   #scopeList {
     position: absolute;
     left: 33px;
@@ -179,7 +164,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    padding: 10px 1px;           /* 手机每行至少 44px 高才好点（原 2px 太小） */
+    padding: 10px 1px;           /* 手机每行至少 44px 高 */
     min-height: 44px;
     box-sizing: border-box;
     cursor: pointer;
@@ -204,7 +189,7 @@
   /* ---------- 范围列表的右键菜单（编辑 / 删除） ---------- */
   #ctxMenu {
     position: absolute;
-    z-index: 8;                      /* 高于热区(6)，低于弹窗层(30) */
+    z-index: 8;                      /* 高于热区，低于弹窗层 */
     display: none;
     min-width: 72px;
     background: #34125f;
@@ -252,14 +237,9 @@
   }
   .btn:active { filter: brightness(1.2); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  /* 旧“开始抽奖”按钮：开始判定已移到右上 GO!，按钮本体保留但隐藏（相关代码不删） */
   #btnStart { display: none; }
-  /* 底部“修改抽奖范围”按钮已隐藏：功能改由左侧三个粉色按钮 + 灰色区域承担，
-     绑定代码保留，随时可以去掉 display:none 恢复 */
   #btnScope { display: none; }
-  /* #uiLayer 与 #stage 同尺寸同变换（fitLandscape 里同步设置 transform），
-     弹窗在这个 900×506 的横屏坐标系里布局，手机竖屏时随画面一起旋转成横屏。
-     容器自身不吃事件，只有显示中的弹窗才吃事件。 */
+  /* #uiLayer 与 #stage 同尺寸同变换（fitLandscape 里同步设置 transform），弹窗在这个 900×506 的横屏坐标系里布局，手机竖屏时随画面一起旋转成横屏。 */
   #uiLayer {
     position: absolute;
     left: 50%;
@@ -270,9 +250,9 @@
     pointer-events: none;
     z-index: 30;
   }
-  /* 显示中的弹窗才接收点击（隐藏的 display:none 本来也不接收） */
+  /* 显示中的弹窗才接收点击 */
   #uiLayer > div.show { pointer-events: auto; }
-  /* ---------- 通用消息/确认弹窗（替代系统 alert/confirm，跟随横屏） ---------- */
+  /* ---------- 通用消息/确认弹窗（替代系统的弹窗 alert/confirm，跟随横屏） ---------- */
   #msgOverlay {
     position: absolute;
     inset: 0;
@@ -280,8 +260,7 @@
     display: none;
     justify-content: center;
     align-items: center;
-    /* 消息/确认弹窗永远是“最后弹出的新弹窗”，层级必须最高，
-       才能盖住下面的中奖弹窗(10)、数据弹窗(20)、开发者弹窗(30) */
+    /* 消息/确认弹窗永远是“最后弹出的新弹窗”，层级必须最高，才能盖住下面的弹窗(10) */
     z-index: 40;
   }
   #msgOverlay.show { display: flex; }
@@ -334,6 +313,8 @@
     overscroll-behavior: contain;
   }
   #overlay.show { display: flex; }
+  /* 从数据编辑弹窗里「查看」预览时，预览层要盖在数据弹窗之上 */
+  #overlay.preview { z-index: 25; }
   #panel {
     width: 700px;
     height: 455px;
@@ -348,7 +329,7 @@
   }
   #mediaBox {
     /* 灰底框始终显示：有图装图，无图装文字说明，两种情况外观一致。
-       弹性占满编号/标题之外的剩余高度，空间不足时自动收缩，绝不顶出外层滚动条 */
+       弹性占满编号/标题之外的剩余高度，空间不足时自动收缩，不顶出外层滚动条 */
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -391,18 +372,18 @@
   #popNum {
     font-size: 42px;
     font-weight: bold;
-    color: #d7198b;            /* 粉色底上的深洋红，醒目又不刺眼 */
+    color: #d7198b;            /* 粉色底上的深洋红字 */
     margin: 4px 0;
   }
   #popText {
-    color: #4b2385;            /* 深紫：浅粉背景上清晰可读 */
+    color: #4b2385;            /* 深紫字：浅粉背景上清晰可读 */
     font-size: 20px;
     line-height: 1.4;
     margin-bottom: 6px;
   }
   #popHint { color: #a06bc0; font-size: 16px; }
 
-  /* ---------- 数据文件夹弹窗（加入/修改范围共用样式） ---------- */
+  /* ---------- 数据分组弹窗（加入/修改范围共用样式） ---------- */
   #dataOverlay {
     position: absolute;
     inset: 0;
@@ -424,21 +405,26 @@
     padding: 58px 20px 12px; /* 顶部留出标题栏区域 */
     text-align: center;
   }
-  /* 编辑挑战模式：面板外层不滚动，只有文本框（最左边那条）能滚动 */
+  /* 编辑挑战模式：面板外层不滚动，只有卡片容器内部滚动 */
   #dataPanel.mode-edit { overflow: hidden; }
-  #itemsEditor { height: 210px; }
+  #dataPanel.mode-edit #itemsToolRow { display: flex; }
   #dataPanel.mode-edit #itemsEditor {
+    display: block;
     height: auto;
     flex: 1 1 auto;
     min-height: 140px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
-  #dataTitle, #dataDesc, #dataBtns, #folderNameInput { flex: none; }
+  #dataTitle, #dataDesc, #dataBtns, #folderNameInput, #itemsToolRow { flex: none; }
   #dataTitle { display: none; }   /* 标题改由 menu 皮肤标题栏显示（红心右侧） */
   #dataDesc {
     color: #7a4faa;
-    font-size: 18px;
-    line-height: 1.6;
-    margin-bottom: 14px;
+    font-size: 13px;          /* 缩小字号，给下方卡片列表腾地方 */
+    line-height: 1.45;
+    margin-bottom: 6px;
     text-align: left;
   }
   #folderNameInput {
@@ -492,7 +478,7 @@
     display: flex;
     gap: 10px;
     justify-content: center;
-    flex-wrap: nowrap;              /* 所有操作按钮始终并排一行，不允许换行 */
+    flex-wrap: nowrap;              /* 所有操作按钮始终并排一行，不换行 */
   }
   #dataBtns button {
     flex: 1 1 0;                    /* 按钮等宽，自动平分弹窗宽度，手机上也点得到 */
@@ -511,6 +497,112 @@
     background: transparent;
     color: #4b2385;
   }
+  /* ---------- 挑战卡片式编辑器） ---------- */
+  /* 工具行：左侧提示文字，右侧圆形 ＋ 按钮 */
+  #itemsToolRow {
+    display: none;                /* 默认隐藏，进入编辑模式才显示（JS 切 display） */
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    flex: none;
+  }
+  #itemsToolRow .tool-hint { color: #7a4faa; font-size: 13px; }
+  #btnAddItem {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #f078c8;
+    background: #b99df0;
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    flex: none;
+    box-shadow: 0 2px 6px rgba(90, 40, 140, 0.35);
+  }
+  #btnAddItem:active { transform: scale(0.92); }
+  /* 卡片滚动容器（沿用 #itemsEditor 的淡紫软框 + 粉边 + 滚动条样式） */
+  #itemsEditor {
+    display: none;                /* 非编辑模式隐藏 */
+    padding: 10px;
+    text-align: left;
+  }
+  /* 单张挑战卡片：深紫底，圆角，内含 任务/说明/图像 三行 + 顶部操作按钮 */
+  .item-card {
+    background: linear-gradient(160deg, #8a72c6, #6f5aa8);
+    border: 2px solid rgba(240, 120, 200, 0.55);
+    border-radius: 12px;
+    padding: 8px 12px 10px;
+    margin-bottom: 10px;
+  }
+  .item-card:last-child { margin-bottom: 2px; }
+  /* 卡片顶行：左侧编号，右侧「查看 / 删除」 */
+  .ic-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .ic-index {
+    background: #f078c8;
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 1px 8px;
+  }
+  .ic-head-actions { display: flex; gap: 8px; }
+  .ic-head-actions button {
+    border: 1px solid #f0b0e0;
+    border-radius: 14px;
+    padding: 3px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #4b2385;
+    background: #f6dcf3;
+  }
+  .ic-head-actions .ic-del { background: #f3b6c4; border-color: #e07a96; }
+  /* 任务/说明/图像 三行：左侧标签 + 右侧浅粉胶囊输入框 */
+  .ic-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 5px 0;
+  }
+  .ic-row label {
+    flex: none;
+    width: 42px;
+    color: #f3e7ff;
+    font-size: 17px;
+    font-weight: bold;
+  }
+  .ic-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: 18px;          /* 胶囊形 */
+    background: #f7dffb;
+    color: #4b2385;
+    font-size: 16px;              /* 字体为≥16px 防 iOS 聚焦放大 */
+    padding: 8px 14px;
+    outline: none;
+  }
+  .ic-row input[type="text"]::placeholder { color: #a98bc8; }
+  /* 图像按钮（未上传>>加入图像，已上传>>更改图片） */
+  .ic-img {
+    flex: none;
+    border: 0;
+    border-radius: 18px;
+    background: #f7dffb;
+    color: #7b3fb0;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 8px 20px;
+    cursor: pointer;
+  }
+  .ic-img.has-img { background: #f078c8; color: #fff; }
   /* ---------- 使用说明弹窗（内容自动读取 slot_assets/manual.md） ---------- */
   #manualOverlay {
     position: absolute;
@@ -569,7 +661,7 @@
     font-size: 14px;
     line-height: 1.6;
   }
-  /* ---------- 自定义滚动条：淡紫轨道 + 粉紫滑块（配软框风格） ---------- */
+  /* ---------- 滚动条：淡紫轨道 + 粉紫滑块（配软框风格） ---------- */
   #panel, #dataPanel, #folderList, #itemsEditor, #detailText, #manualBody {
     scrollbar-width: thin;                 /* Firefox */
     scrollbar-color: #d98ee0 rgba(202, 161, 250, 0.3);
@@ -656,14 +748,12 @@
     background: transparent;
     color: #4b2385;
   }
-  /* 手机端聚焦输入框自动缩放的根治手段：
-     iOS Safari 规定输入控件字号 ≥16px 时聚焦不放大页面
-     （viewport 里的 user-scalable=no 在新版 iOS 上会被忽略，这一条才是真正生效的） */
+  /* 手机端聚焦输入框自动缩放的根治 */
   input[type="text"], input[type="password"], input[type="number"],
   input[type="search"], input[type="email"], input[type="tel"], textarea, select {
     font-size: 16px;
   }
-  /* 版本号：移到“超级抽抽乐”标题的右下角，保持很小，仅用于确认加载的文件版本 */
+  /* 版本号很小，仅用于确认加载的文件版本 */
   #ver {
     position: absolute;
     left: 548px;
@@ -673,12 +763,7 @@
     font-size: 10px;
     text-shadow: 0 1px 2px #000;
   }
-  /* ---------- menu.png 像素风弹窗皮肤（4 个弹窗共用） ----------
-     menu_frame.png 是从 menu.png 裁出的窗口框（已抹掉红心和 X）。
-     坑点：border-image 占据的边框区域里无法放置子元素（爱心/X 会掉到内容区），
-     所以九宫格画在 ::before 层并铺满整个面板（z-index:-1 垫在内容下面），
-     红心、标题、X 直接相对面板定位，正好压在标题栏上。
-     各面板的 padding-top 留出 50px 标题栏高度。 */
+  /* ---------- menu.png 像素风弹窗皮肤（4 个弹窗共用） ---------- */
   .menu-frame {
     position: relative;
     border: 0;
@@ -741,9 +826,7 @@
   }
   .m-close img { width: 26px; height: 26px; image-rendering: pixelated; }
   .m-close:active img { filter: brightness(0.55); }
-  /* 弹窗遮罩铺满整个物理屏幕：舞台是等比缩放（contain）的，屏幕两侧会留白，
-     遮罩若只盖 900×660 的舞台，留白处仍是亮色，看起来像两条“没填满的边”。
-     向四周各扩出 200 个视口单位（经缩放后仍远大于屏幕），中心不变、面板仍居中。 */
+  /* 弹窗遮罩铺满整个物理屏幕，中心不变、面板仍居中。 */
   #overlay, #dataOverlay, #devOverlay, #msgOverlay, #manualOverlay {
     inset: auto;
     left: -200vw;
@@ -755,22 +838,22 @@
 </head>
 <body>
 <div id="stage">
-  <!-- 游戏画面全部画在这张画布上 -->
+  <!-- 游戏画面全部画在画布上 -->
   <canvas id="game" width="900" height="560"></canvas>
   <!-- 右上 GO!：开始抽奖的判定按钮 -->
   <button id="btnGo">GO!</button>
-  <!-- 右上开发者入口 logo（点它才弹密码验证） -->
+  <!-- 右上开发者入口 logo（密码验证） -->
   <button id="btnDevLogo" aria-label="开发者验证">秋</button>
-  <!-- 右侧红 − 绿 ＋：调整抽奖滚轮数量（外观由背景图提供，按钮只是透明热区） -->
+  <!-- 右侧红 − 绿 ＋：调整抽奖滚轮数量 -->
   <button class="side-reel" id="btnReelMinus" aria-label="减少滚轮">−</button>
   <button class="side-reel" id="btnReelPlus" aria-label="增加滚轮">＋</button>
-  <!-- 左侧三个粉色按钮的透明热区：批量导入 / 单次导入 / 保存范围（外观画在背景图里） -->
+  <!-- 左侧三个粉色按钮的透明热区：批量导入 / 单次导入 / 保存范围 -->
   <button class="hotspot" id="btnBatchImport" aria-label="批量导入"></button>
   <button class="hotspot" id="btnSingleImport" aria-label="单次导入"></button>
   <button class="hotspot" id="btnSaveScope" aria-label="保存范围"></button>
-  <!-- 右侧“使用说明”粉色按钮热区（外观画在背景图里） -->
+  <!-- 右侧“使用说明”粉色按钮热区（ -->
   <button class="hotspot" id="btnManual" aria-label="使用说明"></button>
-  <!-- 左侧灰色区域：已有抽奖范围列表（勾选=参与抽奖，左键切换；右键/长按可编辑或删除） -->
+  <!-- 左侧灰色区域：已有抽奖范围列表（勾选>>参与抽奖，左键切换；右键/长按可编辑或删除） -->
   <div id="scopeList" aria-label="已有抽奖范围"></div>
   <!-- 范围列表的右键菜单（编辑 / 删除） -->
   <div id="ctxMenu">
@@ -780,7 +863,7 @@
   <!-- 右下角昼夜背景切换热区（药丸外观画在背景图里） -->
   <button id="bgToggle" aria-label="切换昼夜背景"></button>
   <!-- 版本号：标题右下角小字，仅用于确认文件版本 -->
-  <div id="ver">v37</div>
+  <div id="ver">v39</div>
   <!-- 底部按钮栏：两个按钮均已隐藏（开始判定在 GO!，范围修改在左侧栏），绑定代码保留 -->
   <div id="btnBar">
     <button class="btn" id="btnStart">开始抽奖</button>
@@ -788,10 +871,9 @@
   </div>
 </div>
 
-<!-- 所有弹窗的公共层：与 #stage 同样旋转/缩放，
-     保证手机竖屏物理屏幕上弹窗也是横屏方向 -->
+<!-- 所有弹窗的公共层：与 #stage 同样旋转/缩放，保证手机竖屏物理屏幕上弹窗也是横屏方向 -->
 <div id="uiLayer">
-<!-- 中奖弹窗（默认隐藏，menu.png 像素风皮肤） -->
+<!-- 中奖弹窗 -->
 <div id="overlay">
   <div id="panel" class="menu-frame">
     <img class="m-heart" src="slot_assets/heart.png" alt="">
@@ -808,7 +890,7 @@
   </div>
 </div>
 
-<!-- 开发者验证弹窗（点右上“秋”logo 触发，默认隐藏） -->
+<!-- 开发者验证弹窗-->
 <div id="devOverlay">
   <div id="devPanel" class="menu-frame">
     <img class="m-heart" src="slot_assets/heart.png" alt="">
@@ -822,7 +904,7 @@
   </div>
 </div>
 
-<!-- 数据文件夹弹窗（加入/修改范围共用，默认隐藏） -->
+<!-- 数据分组弹窗 -->
 <div id="dataOverlay">
   <div id="dataPanel" class="menu-frame">
     <img class="m-heart" src="slot_assets/heart.png" alt="">
@@ -830,15 +912,16 @@
     <button class="m-close" type="button" aria-label="关闭"><img src="slot_assets/close_x.png" alt="关闭"></button>
     <div id="dataTitle"></div>
     <div id="dataDesc"></div>
-    <input type="text" id="folderNameInput" placeholder="输入子文件夹名称" style="display:none">
+    <input type="text" id="folderNameInput" placeholder="输入新分组名称" style="display:none">
     <div id="folderList"></div>
-    <!-- 编辑文件夹内容用的多行文本框（默认隐藏；高度在 CSS 里，编辑模式下弹性占满） -->
-    <textarea id="itemsEditor" style="display:none; width:100%;
-      background:rgba(202,161,250,0.5); color:#4b2385; border:2px solid #f078c8;
-      border-radius:8px; padding:12px; font-size:16px; line-height:1.7;
-      resize:vertical; outline:none; margin-bottom:14px;
-      -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y;"
-      placeholder="每行一个挑战，格式：挑战正文 | 额外说明 | 图片路径"></textarea>
+    <!-- 编辑分组内容：卡片式挑战编辑器 -->
+    <div id="itemsToolRow">
+      <span class="tool-hint">每项一张卡片，点右侧 ＋ 新增挑战</span>
+      <button type="button" id="btnAddItem" aria-label="新增一项挑战">+</button>
+    </div>
+    <div id="itemsEditor"></div>
+    <!-- 选图片用的隐藏文件框：点卡片里的「加入图像」时触发，选完压缩存入卡片 -->
+    <input type="file" id="itemImageFile" accept="image/*" style="display:none">
     <div id="dataBtns"></div>
   </div>
 </div>
@@ -866,17 +949,12 @@
 </div>
 </div><!-- /uiLayer -->
 
-<!-- 批量导入用的隐藏文件夹选择框（点“导入文件夹”时由 JS 触发；手机不支持时数据会自动加载） -->
+<!-- 批量导入用的隐藏文件夹选择框 -->
 <input type="file" id="importDir" webkitdirectory directory multiple style="display:none">
 
 <script>
 "use strict";
-// ==================== 3D 旋转强制横屏（无提示，无竖屏选项） ====================
-// 原理：#stage 是 900×506.25（16:9，与背景图同比例）的固定画布，竖屏时整个 stage
-// 旋转 90°，同时等比缩放保证内容刚好铺满屏幕。横屏时恢复原状。
-// #uiLayer（所有弹窗）使用完全相同的变换，弹窗方向始终和游戏画面一致。
-// 是否竖屏握持（=画布被顺时针旋转了 90°）。触摸坐标换算必须和这里保持一致，
-// 否则点的是屏幕右边，算出来却是画布里的别处（旋转逆变换见 getCanvasPos）。
+// ==================== 3D 旋转强制横屏 ====================
 const STAGE_W = 900, STAGE_H = 506.25;
 function isRotatedView() {
   return window.matchMedia("(pointer: coarse)").matches &&
@@ -914,9 +992,8 @@ window.addEventListener("orientationchange", () => {
 // ==================== 锁定页面缩放（防止手机点输入框自动放大） ====================
 // 三重保险：
 // 1) viewport meta 已写死 minimum/maximum-scale=1.0（QQ、安卓 Chrome 等遵守）
-// 2) 部分内核（百度/UC/夸克/部分微信内核）无视 meta，聚焦时仍放大——
-//    在聚焦瞬间及键盘弹起过程中多次检测，一旦发现缩放偏离立即重写 meta 拉回 1.0
-// 3) 禁用双指/手势缩放，堵住手动放大后再点输入框的情况
+// 2) 在聚焦瞬间及键盘弹起过程中多次检测，一旦发现缩放偏离立即拉回 1.0
+// 3) 禁用双指/手势缩放
 const vpMeta = document.querySelector('meta[name="viewport"]');
 const VP_DEFAULT = vpMeta.getAttribute("content");
 let vpRestoreTimer = 0;
@@ -946,7 +1023,7 @@ if (window.visualViewport) {
     if (isFormField(document.activeElement)) forceScaleOne(false);
   });
 }
-// 失焦（键盘收起）后最终复位一次
+// 失焦后最终复位一次
 document.addEventListener("focusout", () => setTimeout(() => forceScaleOne(true), 120));
 // 禁止 iOS 手势缩放
 document.addEventListener("gesturestart", e => e.preventDefault());
@@ -956,18 +1033,17 @@ document.addEventListener("touchmove", e => {
   if (e.touches && e.touches.length > 1) e.preventDefault();
 }, { passive: false });
 
-// ==================== 数据文件夹系统（全部为子文件夹，无内置数据） ====================
-// 数据来源：启动时自动 fetch slot_assets/manifest.json 从网站加载（见 autoLoadOnlineData），
+// ==================== 数据分组系统 ====================
+// 数据来源：启动时自动 fetch slot_assets/manifest.json 从网站加载，
 // 用户也可以用「加入抽奖数据」手动创建。所有数据都持久化在 localStorage。
-// 用户创建的子文件夹列表
 let subFolders = [];
-// 当前勾选参与抽奖的文件夹名
+// 当前勾选参与抽奖的分组名
 let activeFolders = new Set();
-// 当前激活的挑战列表缓存：只在初始化/改范围/改文件夹时重建，
-// 每帧绘制直接用它，不再重复生成（这是滚动流畅的关键）
+// 当前激活的挑战列表缓存：只在初始化/改范围/改分组时重建，
+// 每帧绘制直接用它，不再重复生成（滚动流畅）
 let activeItems = [];
 
-// 从 localStorage 加载子文件夹和勾选状态（刷新后保留）
+// 从 localStorage 加载分组和勾选状态
 function loadFolders() {
   try {
     const raw = localStorage.getItem("ef_sub_folders");
@@ -978,17 +1054,22 @@ function loadFolders() {
     if (rawActive) {
       activeFolders = new Set(JSON.parse(rawActive));
     } else {
-      // 首次迁移：老数据里没有勾选记录，默认全部勾选，行为与旧版一致
+      // 首次迁移：老数据里没有勾选记录，默认全部勾选
       activeFolders = new Set(subFolders.map(f => f.name));
     }
   } catch (e) { activeFolders = new Set(subFolders.map(f => f.name)); }
 }
 function saveFolders() {
-  localStorage.setItem("ef_sub_folders", JSON.stringify(subFolders));
-  localStorage.setItem("ef_active_folders", JSON.stringify([...activeFolders]));
+  try {
+    localStorage.setItem("ef_sub_folders", JSON.stringify(subFolders));
+    localStorage.setItem("ef_active_folders", JSON.stringify([...activeFolders]));
+    return true;
+  } catch (e) {
+    // 上传的图片是 dataURL，体积大，可能超出 localStorage 配额（约 5MB）
+    return false;
+  }
 }
-// 获取当前激活的所有挑战项（勾选的子文件夹）
-// 编号统一按顺序重新生成，保证滚轮上数字 1~N 不重复
+// 获取当前激活的所有挑战项（勾选的分组），编号统一按顺序重新生成，保证滚轮上数字不重复
 function getActiveItems() {
   const items = [];
   for (const folder of subFolders) {
@@ -1025,10 +1106,10 @@ function rebuildReelData(renderList = true) {
   requestFrame();                      // 数据/滚轮变化后唤醒重绘（静态层和数字带都变了）
   return activeItems;
 }
-// 加入新子文件夹
+// 加入新分类
 function addFolder(name) {
   if (!name || subFolders.some(f => f.name === name)) {
-    showMessage("文件夹名不能为空或已存在");
+    showMessage("分组名不能为空或已存在");
     return false;
   }
   subFolders.push({ name, items: [] });
@@ -1036,35 +1117,125 @@ function addFolder(name) {
   saveFolders();
   return true;
 }
-// 解析文本框内容：每行一个挑战，用 | 分隔「正文 | 额外说明 | 图片路径」
-// 后两段可省略；num 不手写，保存时按顺序自动编号
-function parseItemsText(text) {
-  const items = [];
-  text.split("\n").forEach(line => {
-    line = line.trim();
-    if (!line) return;                          // 跳过空行
-    const parts = line.split("|").map(s => s.trim());
-    items.push({
-      num: 0,                                   // 编号在 getActiveItems 里统一生成
-      text: parts[0] || "",
-      detail: parts[1] || null,
-      image: parts[2] || null
+// ==================== 挑战卡片式编辑器 ====================
+// 每条挑战一张卡片：任务/说明两个输入框 + 图像按钮 + 查看/删除。
+// 上传的图片压缩成 dataURL 直接存在卡片元素的 _image 属性上（保存时写入 localStorage）。
+const itemsCardsEl = document.getElementById("itemsEditor");
+const itemImageFile = document.getElementById("itemImageFile");
+let editingFolder = null;                    // 当前正在编辑的分组对象
+let cardImageTarget = null;                  // 点「加入图像」时记录是哪张卡片在选图
+// 刷新所有卡片左上角编号（删除/新增后序号连续）
+function refreshCardIndex() {
+  itemsCardsEl.querySelectorAll(".item-card").forEach((card, i) => {
+    card.querySelector(".ic-index").textContent = "#" + (i + 1);
+  });
+}
+// 新建一张卡片；item 可空（点 ＋ 新增的空白卡）
+function addItemCard(item) {
+  item = item || { text: "", detail: null, image: null };
+  const card = document.createElement("div");
+  card.className = "item-card";
+  card._image = item.image || null;          // 图片路径或 dataURL，挂在元素上不进 DOM 属性
+  card.innerHTML =
+    '<div class="ic-head">' +
+      '<span class="ic-index"></span>' +
+      '<span class="ic-head-actions">' +
+        '<button type="button" class="ic-view">查看</button>' +
+        '<button type="button" class="ic-del">删除</button>' +
+      '</span>' +
+    '</div>' +
+    '<div class="ic-row"><label>任务</label>' +
+      '<input type="text" class="ic-task" maxlength="60" placeholder="写任务概述（必填），如：台词模仿"></div>' +
+    '<div class="ic-row"><label>说明</label>' +
+      '<input type="text" class="ic-detail" maxlength="200" placeholder="任务细节说明（可不填）"></div>' +
+    '<div class="ic-row"><label>图像</label>' +
+      '<button type="button" class="ic-img"></button></div>';
+  card.querySelector(".ic-task").value = item.text || "";
+  card.querySelector(".ic-detail").value = item.detail || "";
+  const imgBtn = card.querySelector(".ic-img");
+  imgBtn.textContent = card._image ? "更改图片" : "加入图片";
+  imgBtn.classList.toggle("has-img", !!card._image);
+  // 加入图片 / 更改图片：弹出系统选图框
+  imgBtn.addEventListener("click", () => {
+    cardImageTarget = card;
+    itemImageFile.value = "";                // 清空后重复选同一张图也能再触发 change
+    itemImageFile.click();
+  });
+  // 查看：按抽奖结果弹窗的样子预览这张卡片的效果
+  card.querySelector(".ic-view").addEventListener("click", () => {
+    const idx = [...itemsCardsEl.children].indexOf(card);
+    previewItem({
+      num: idx + 1,
+      text: card.querySelector(".ic-task").value.trim() || "（任务还没有填写）",
+      detail: card.querySelector(".ic-detail").value.trim(),
+      image: card._image
     });
+  });
+  // 删除：二次确认后移除卡片
+  card.querySelector(".ic-del").addEventListener("click", async () => {
+    const task = card.querySelector(".ic-task").value.trim();
+    const ok = await showConfirm("确定删除这一项吗？" + (task ? "\n「" + task + "」" : ""));
+    if (!ok) return;
+    card.remove();
+    refreshCardIndex();
+  });
+  itemsCardsEl.appendChild(card);
+  refreshCardIndex();
+  return card;
+}
+// 从所有卡片收集数据；直接忽略任务为空的卡片
+function collectItemsFromCards() {
+  const items = [];
+  itemsCardsEl.querySelectorAll(".item-card").forEach(card => {
+    const text = card.querySelector(".ic-task").value.trim();
+    if (!text) return;                        // 没写任务的空卡片不保存
+    const detail = card.querySelector(".ic-detail").value.trim();
+    items.push({ num: 0, text, detail: detail || null, image: card._image || null });
   });
   return items;
 }
-// 把文件夹内容序列化回文本（编辑时回填到文本框）
-function itemsToText(items) {
-  return items.map(it =>
-    it.text +
-    (it.detail || it.image ? " | " + (it.detail || "") : "") +
-    (it.image ? " | " + it.image : "")
-  ).join("\n");
-}
+// 选好图片后：读文件 → 等比压缩（最长边 900px，JPEG 0.82）→ 存到卡片上
+itemImageFile.addEventListener("change", () => {
+  const file = itemImageFile.files && itemImageFile.files[0];
+  const card = cardImageTarget;
+  if (!file || !card) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 900;                        // 压到最长边 900px，足够手机显示且省 localStorage
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      card._image = c.toDataURL("image/jpeg", 0.82);
+      const btn = card.querySelector(".ic-img");
+      btn.textContent = "更改图片";
+      btn.classList.add("has-img");
+      showMessage("图片已载入，记得点「保存」。");
+    };
+    img.onerror = () => showMessage("图片读取失败，请换一张试试。");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
 // 关闭数据弹窗的公共方法
 function closeDataOverlay() {
   document.getElementById("dataOverlay").classList.remove("show");
   document.getElementById("dataPanel").classList.remove("mode-edit");
+}
+// 工具行 ＋：新增一张空白卡片，滚动到底部并聚焦任务输入框
+document.getElementById("btnAddItem").addEventListener("click", () => {
+  const card = addItemCard();
+  itemsCardsEl.scrollTop = itemsCardsEl.scrollHeight;
+  card.querySelector(".ic-task").focus();
+});
+// 「查看」预览：复用抽奖结果弹窗，但层级提到数据弹窗之上
+function previewItem(item) {
+  openPopup(item);
+  overlay.classList.add("preview");
 }
 
 // ==================== 批量导入（slot_assets 文件夹格式） ====================
@@ -1087,14 +1258,7 @@ document.getElementById("importDir").addEventListener("change", e => {
   if (!files.length) return;
   importAssetFolders(files);
 });
-// ==================== 在线数据 txt 解析（自动加载时使用） ====================
-// 格式约定（和 slot_assets/鸣潮 一致）：
-//   slot_assets/某文件夹/抽奖数据.txt   ← 数据
-//   slot_assets/某文件夹/xxx.jpg       ← 配图
-// txt 里用空行分隔多个挑战，每个挑战三行：
-//   任务 xxx
-//   说明 xxx（没有就写：说明 无）
-//   图像 xxx.jpg（没有就写：图像 无）
+// ==================== 在线数据 txt 解析（自动加载） ====================
 // 解析单个 抽奖数据.txt 的文本
 function parseAssetTxt(text) {
   const items = [];
@@ -1120,7 +1284,7 @@ function importAssetFolders(files) {
   if (!dataFiles.length) {
     showMessage("所选内容里没有找到「抽奖数据.txt」。\n\n正确结构示例：\n" +
       "slot_assets/鸣潮/抽奖数据.txt\nslot_assets/鸣潮/配图.jpg\n\n" +
-      "建议选择整个 slot_assets 文件夹（一次导入全部子文件夹）。");
+      "建议选择整个 slot_assets 文件夹（一次导入全部分组）。");
     return;
   }
   // 所选文件的相对路径集合，用来校验图片是否真实存在
@@ -1158,7 +1322,7 @@ function importAssetFolders(files) {
         subFolders.push({name: folderName, items});
         added++;
       }
-      activeFolders.add(folderName);            // 导入（含覆盖）的默认参与抽奖
+      activeFolders.add(folderName);            // 新导入的分组默认参与抽奖
     }
     if (added === 0 && updated === 0) {
       showMessage("没有导入任何文件夹。" +
@@ -1167,25 +1331,24 @@ function importAssetFolders(files) {
     }
     saveFolders();
     rebuildReelData();
-    openScope();                                 // 刷新范围弹窗，立刻看到结果
-    showMessage("批量导入完成！新增文件夹：" + added + " 个" +
+    openScope();                                 // 刷新范围弹窗
+    showMessage("批量导入完成！新增分组：" + added + " 个" +
       (updated ? "\n覆盖更新：" + updated + " 个" : "") +
       (empty ? "\n内容为空跳过：" + empty + " 个" : "") +
-      (missingImgs.length ? "\n\n警告：以下图片在所选内容中未找到，抽到时将无法显示：\n" + missingImgs.join("\n") : ""));
+      (missingImgs.length ? "\n\n警告：以下图片在所选内容中未找到，无法显示：\n" + missingImgs.join("\n") : ""));
   });
 }
-// 打开“加入抽奖数据”弹窗：输入名字 → 创建 → 直接进入内容编辑
+// 打开“加入抽奖数据”弹窗：输入名字 → 创建 → 直接进入卡片编辑
 function openAddData() {
   const overlay = document.getElementById("dataOverlay");
   document.getElementById("dataHeaderTitle").textContent = "加入抽奖数据";
   document.getElementById("dataDesc").innerHTML =
-    "第一步：给子文件夹起个名字（比如「动漫梗」「班级专属」），点“创建”。<br>" +
-    "创建后会自动进入第二步：往文件夹里填挑战内容。";
+    "Step 1: 给新的分组起个名字吧";
   const input = document.getElementById("folderNameInput");
   input.style.display = "block";
   input.value = "";
   document.getElementById("folderList").innerHTML = "";
-  document.getElementById("itemsEditor").style.display = "none";
+  itemsCardsEl.innerHTML = "";
   const btns = document.getElementById("dataBtns");
   btns.innerHTML = '<button id="dataCreate">创建</button>';
   overlay.classList.add("show");
@@ -1195,48 +1358,51 @@ function openAddData() {
     if (addFolder(name)) openFolderEditor(name, true);   // 创建成功 → 直接编辑内容
   };
 }
-// 打开“编辑文件夹内容”弹窗：textarea 里每行一个挑战
+// 打开“编辑文件夹内容”弹窗：每项挑战一张卡片
 function openFolderEditor(name, isNew) {
   const folder = subFolders.find(f => f.name === name);
   if (!folder) return;
+  editingFolder = folder;
   const overlay = document.getElementById("dataOverlay");
-  document.getElementById("dataHeaderTitle").textContent = "编辑「" + name + "」的挑战";
+  document.getElementById("dataHeaderTitle").textContent = "编辑「" + name + "」的内容";
   document.getElementById("dataDesc").innerHTML =
-    "使用说明：<br>" +
-    "1. 每行写一个挑战，直接写文字即可；<br>" +
-    "2. 想加额外说明或图片，用 | 分隔：挑战正文 | 额外说明 | 图片路径<br>" +
-    "（图片放到 slot_assets 文件夹，路径写成 slot_assets/xxx.jpg）；<br>" +
-    "3. 写多点「保存」，该文件夹自动加入抽奖范围。" +
-    (isNew ? "<br><br>文件夹「" + name + "」已创建成功，现在把挑战写进来吧！" : "");
+    "点右侧紫色 ＋ 可加入新的任务卡片，写完点底部「保存」。" +
+    (isNew ? "<br>新分组「" + name + "」已创建成功，现在点 ＋ 添加任务吧！" : "");
   document.getElementById("folderNameInput").style.display = "none";
   document.getElementById("folderList").innerHTML = "";
-  const editor = document.getElementById("itemsEditor");
-  editor.style.display = "block";
-  editor.value = itemsToText(folder.items);
+  // 按分组现有内容生成卡片；新分组自动给一张空白卡
+  itemsCardsEl.style.display = "";            // 清掉其它弹窗留下的内联 none，交给 mode-edit 样式控制
+  itemsCardsEl.innerHTML = "";
+  folder.items.forEach(it => addItemCard(it));
+  if (!folder.items.length) addItemCard();
   overlay.classList.add("show");
   document.getElementById("dataPanel").classList.add("mode-edit");
   const btns = document.getElementById("dataBtns");
   btns.innerHTML = '<button id="dataSaveItems">保存</button>';
   document.getElementById("dataSaveItems").onclick = () => {
-    folder.items = parseItemsText(editor.value);
-    saveFolders();
+    folder.items = collectItemsFromCards();
+    const ok = saveFolders();
+    if (!ok) {
+      showMessage("保存失败：本地存储空间不够。\n请减少图片数量，或换更小的图片后再保存。");
+      return;
+    }
     rebuildReelData();
     closeDataOverlay();
-    showMessage("已保存「" + name + "」，共 " + folder.items.length + " 个挑战！");
+    showMessage("已保存「" + name + "」，共 " + folder.items.length + " 个任务！");
   };
 }
-// 打开“修改抽奖范围”弹窗：勾选文件夹，子文件夹可编辑/删除
+// 打开“修改抽奖范围”弹窗：勾选分组，子分组可编辑/删除
 function openScope() {
   const overlay = document.getElementById("dataOverlay");
   document.getElementById("dataHeaderTitle").textContent = "修改抽奖范围";
   document.getElementById("dataDesc").textContent =
-    "勾选要参与抽奖的文件夹；点「编辑」可修改文件夹内容，点「删除」移除整个文件夹：";
+    "勾选要参与抽奖的分组；点「编辑」可修改分组内容，点「删除」移除整个分组：";
   document.getElementById("folderNameInput").style.display = "none";
   document.getElementById("itemsEditor").style.display = "none";
   document.getElementById("dataPanel").classList.remove("mode-edit");
   const list = document.getElementById("folderList");
   list.innerHTML = "";
-  // 子文件夹（可勾选、可编辑、可删除）
+  // 分组（可勾选、可编辑、可删除）
   for (const folder of subFolders) {
     const div = document.createElement("div");
     div.className = "folder-item";
@@ -1255,7 +1421,7 @@ function openScope() {
   });
   list.querySelectorAll("[data-del]").forEach(btn => {
     btn.onclick = async () => {
-      const ok = await showConfirm("确定删除文件夹「" + btn.dataset.del + "」？里面的挑战会一起删掉。");
+      const ok = await showConfirm("确定删除分组「" + btn.dataset.del + "」？里面的任务会一起删掉。");
       if (!ok) return;
       subFolders = subFolders.filter(f => f.name !== btn.dataset.del);
       activeFolders.delete(btn.dataset.del);
@@ -1284,7 +1450,7 @@ function openScope() {
       resultIndexes = new Array(reelCount).fill(0);
     }
     closeDataOverlay();
-    showMessage("抽奖范围已更新！当前共 " + active.length + " 个挑战。");
+    showMessage("抽奖范围已更新！当前共 " + active.length + " 个任务。");
   };
 }
 // 绑定按钮事件
@@ -1310,7 +1476,7 @@ function saveScopeFromList() {
     state = "idle";
     resultIndexes = new Array(reelCount).fill(0);
   }
-  showMessage("抽奖范围已保存！当前共 " + active.length + " 个挑战。");
+  showMessage("抽奖范围已保存！当前共 " + active.length + " 个任务。");
 }
 
 // 渲染左侧灰色区域的范围列表：每个范围前面一个勾选框，左键勾/去勾即时生效
@@ -1336,7 +1502,7 @@ function renderScopeList() {
     const name = document.createElement("span");
     name.className = "scope-name";
     name.textContent = folder.name;
-    name.title = folder.name + "（" + folder.items.length + " 个挑战，右键或长按可编辑/删除）";
+    name.title = folder.name + "（" + folder.items.length + " 个任务，右键或长按可编辑/删除）";
     // 整行可点：点名字也能切换勾选（手机上复选框太小，整行 44px 更好点）
     item.addEventListener("click", e => {
       if (e.target === cb) return;           // 点复选框本身不重复触发
@@ -1350,7 +1516,7 @@ function renderScopeList() {
   }
 }
 
-// ---- 右键菜单（编辑 / 删除）：电脑右键弹出，手机长按 0.5 秒等价弹出 ----
+// ---- 右键菜单（编辑 / 删除）：电脑右键弹出，手机长按 0.5 秒弹出 ----
 const ctxMenu = document.getElementById("ctxMenu");
 let ctxTarget = null;                        // 菜单当前对应的文件夹名
 let ctxPressTimer = 0;
@@ -1399,7 +1565,7 @@ document.getElementById("ctxDelete").addEventListener("click", async () => {
   const name = ctxTarget;
   hideCtxMenu();
   if (!name) return;
-  const ok = await showConfirm("确定删除文件夹「" + name + "」？里面的挑战会一起删掉。");
+  const ok = await showConfirm("确定删除分组「" + name + "」？里面的任务会一起删掉。");
   if (!ok) return;
   subFolders = subFolders.filter(f => f.name !== name);
   activeFolders.delete(name);
@@ -1415,8 +1581,6 @@ document.addEventListener("pointerdown", e => {
 const manualOverlay = document.getElementById("manualOverlay");
 const manualBody = document.getElementById("manualBody");
 let manualCache = null;                         // 读一次缓存起来，再点开窗不用重新请求
-// 极简 Markdown 渲染：支持 #/## 标题、有序列表、**加粗**、`行内代码`、```代码块```、空行分段。
-// 先转义 HTML 再替换标记，manual.md 是本地可信文件，转义仍保留以防尖括号把布局撑坏。
 function renderMarkdown(md) {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = s => esc(s)
@@ -1460,8 +1624,7 @@ async function openManual() {
     let hint = "<p>说明文件读取失败（" + safeMsg + "）。</p>";
     if (isFile) {
       // 直接双击 index.html 用 file:// 打开时，浏览器禁止 fetch 本地文件，必须走 http 服务器
-      hint += "<p><strong>原因：</strong>当前是通过本地文件（file://）打开页面，浏览器不允许网页读取本地文件。</p>" +
-              "<p><strong>解决：</strong>在项目目录下运行 <code>python -m http.server 8131</code>，然后浏览器访问 <code>http://localhost:8131/</code> 即可正常读取说明。</p>";
+      hint += "<p><strong>原因：</strong>当前是通过本地文件（file://）打开页面，浏览器不允许网页读取本地文件。</p>";
     } else {
       hint += "<p>请确认 <code>slot_assets/manual.md</code> 文件存在，并通过本地服务器或网站访问本页面。</p>";
     }
@@ -1503,30 +1666,25 @@ let stopSounded = [false, false, false];      // 停止声是否已响
 let reelStopped = [false, false, false];       // 每个滚轮是否已停止（停止后未抽中数字渐变灰）
 let reelStopTimes = [0, 0, 0];                 // 每个滚轮的停止时刻（用于变灰计时）
 let currentOffsets = [0, 0, 0];                // 每帧各滚轮的滚动位置（update 算一次，draw 直接读）
-const FADE_MS = 150;                           // 滚轮停止后，未抽中数字的变灰时长（毫秒，越小越快）
+const FADE_MS = 120;                           // 滚轮停止后，未抽中数字的变灰时长（毫秒，越小越快）
 // ---- 滚轮数量（用底部按钮栏的 −/＋ 调节，范围 1~6，记住上次设置）----
 const REEL_MIN = 1, REEL_MAX = 6;
 let reelCount = Math.min(REEL_MAX, Math.max(REEL_MIN,
   parseInt(localStorage.getItem("ef_reel_count")) || 3));
-// 静态层离屏画布：背景、标题、滚轮底板、金色边框、版本号每帧都一样，只画一次。
-// 尺寸在初始化时按 SCREEN_W/SCREEN_H 设置（此时常量还没定义，先创建元素）
+// 静态层离屏画布：背景、标题、滚轮底板、金色边框、版本号每帧都一样，只画一次。尺寸在初始化时按 SCREEN_W/SCREEN_H 设置（此时常量还没定义，先创建元素）
 const staticLayer = document.createElement("canvas");
 const sctx = staticLayer.getContext("2d");
-// 取模工具：JS 的 % 对负数会给负结果，这里统一成 0~n-1（内联用，避免函数调用开销也可直接写）
 function modIndex(a, n) { return ((a % n) + n) % n; }
-// （原 canvas 内的开始按钮已移到 HTML 底部按钮栏，btnRect 已删除）
 
-// ==================== 基本配置（滚轮外观改用 roller.png 竖幅素材） ====================
+// ==================== 基本配置 ====================
 const SCREEN_W = 900, SCREEN_H = 560;         // canvas 高度压缩为 560，为按钮腾空间
-// 竖幅 roller.png 原始 528×938（宽高比 0.563），内部填充占宽约 20.8%、直身段占高约 68%。
-// 屏幕上每列显示为 250×444（保持比例不变形），数字只画在内部 52px 宽的填充区里。
 const REEL_W = 250, REEL_GAP = 24, ITEM_H = 72;
-const ROLLER_W = 250, ROLLER_H = 444;         // 竖幅显示尺寸（保持原图 528:938 比例）
+const ROLLER_W = 250, ROLLER_H = 444;         // 竖幅显示尺寸（保持原图比例）
 const NUM_W = 52;                             // 数字带宽度（≈竖幅内部填充宽，34px 数字可容下两位数）
 const REEL_TOP = 80;                          // 滚轮上移，为按钮腾空间
-const REEL_H = ITEM_H * 4;                    // 滚轮高度压缩为 4 格（原 5 格）
-const CENTER_Y = REEL_TOP + REEL_H / 2;       // =224，竖幅中心对齐中奖格
-// 数字显示窗口的裁切形状：胶囊形（上下半圆+中间直段），贴合卷轴上下收口的弧形，避免方形硬边
+const REEL_H = ITEM_H * 4;                    // 滚轮高度为 4 格
+const CENTER_Y = REEL_TOP + REEL_H / 2;       // 竖幅中心对齐中奖格
+// 数字显示窗口的裁切形状：胶囊形
 const CLIP_RADIUS = NUM_W / 2;
 // 滚轮窗口矩形：数量可变（1~6 个），宽度自适应、整体居中
 function reelRect(i) {
@@ -1536,32 +1694,30 @@ function reelRect(i) {
   const x0 = (SCREEN_W - totalW) / 2;
   return { x: x0 + i * (w + REEL_GAP), y: REEL_TOP, w, h: REEL_H };
 }
-// 竖幅素材（已扣去浅紫背景，透明 PNG）：图片加载是异步的，加载完重画一次静态层
+// 竖幅素材（透明 PNG）：图片加载是异步的，加载完重画一次静态层
 const rollerImg = new Image();
 rollerImg.onload = () => { buildStaticLayer(); requestFrame(); };
 rollerImg.src = "slot_assets/roller.png";
 // ==================== 抽奖时间配置（按滚轮序号动态计算，数量可变） ====================
-const TOTAL_SPIN = 8.0;
+const TOTAL_SPIN = 6.0;
 const STOP_INTERVAL = 0.8;
 // 第 i 个滚轮的停止时刻/滚动圈数：越靠后的滚轮停得越晚、滚得越久
 function stopTimeFor(i) { return TOTAL_SPIN - STOP_INTERVAL * (reelCount - 1 - i); }
 function turnsFor(i)    { return 6 + i * 2; }
 
-// ==================== 滚轮数据（无内置数据，全部来自子文件夹） ====================
+// ==================== 滚轮数据（无内置数据，全部来自文件） ====================
 // 在线数据放在 slot_assets/<文件夹名>/抽奖数据.txt，
 // 由 slot_assets/manifest.json 登记，打开页面时自动加载。
 let ITEM_COUNT = 0;
 let CIRCUMFERENCE = 0;
 let STRIP_REPEAT = 0;
 let STRIP_H = 0;
-
-// 颜色（只保留仍在使用的）
 const COLOR_GRAY = "#969cb4";
 // 字体字符串提为常量：避免每帧新建字符串（GC 压力小，滚动更稳）
 const FONT_NUM   = "bold 34px 'Microsoft YaHei', sans-serif";
 const FONT_HINT  = "16px 'Microsoft YaHei', sans-serif";
 
-// ==================== 音效（Web Audio 现场合成，无需素材） ====================
+// ==================== 音效（Web Audio 现场合成） ====================
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -1591,7 +1747,7 @@ function sfxWin() {
     setTimeout(() => playTone(f, f, 0.25, 0.2), i * 150));
 }
 // 缓动函数：easeOutQuart，越接近终点速度越慢，渐渐停止——
-// t=1 时精确归位且瞬时速度为 0，滚轮是"缓"停下来的，没有任何硬着陆。
+// t=1 时精确归位且瞬时速度为 0，滚轮是"缓"停下来的
 function easeOutSlot(t) {
   if (t <= 0) return 0;
   if (t >= 1) return 1;
@@ -1633,8 +1789,8 @@ function changeReelCount(delta) {
 function setButtonsSpinning(spinning) {
   document.getElementById("btnStart").disabled = spinning;
   document.getElementById("btnScope").disabled = spinning;
-  document.getElementById("btnStart").textContent = spinning ? "抽奖中······" : "开始抽奖";
-  // GO! 按钮同步禁用并显示“抽奖中”，结束后恢复
+  document.getElementById("btnStart").textContent = spinning ? "抽奖中" : "开始抽奖";
+  // GO! 按钮同步禁用，结束后恢复
   const btnGo = document.getElementById("btnGo");
   btnGo.disabled = spinning;
   btnGo.textContent = spinning ? "抽奖中" : "GO!";
@@ -1652,7 +1808,7 @@ function updateReelButtons(forceSpinning) {
 }
 function startSpin() {
   if (ITEM_COUNT === 0) {
-    showMessage("还没有抽奖数据。\n请检查网络后重新刷新（数据会自动加载），\n或点「修改抽奖范围 → 加入抽奖数据」手动创建。");
+    showMessage("还没有抽奖数据。请检查网络后重新刷新或手动导入。");
     return;
   }
   ensureAudio();
@@ -1719,8 +1875,8 @@ function roundRect(c, x, y, w, h, radius) {
   c.arcTo(x, y, x + w, y, radius);
   c.closePath();
 }
-// 构建静态层：每个滚轮的竖幅外观（roller.png）每帧都不变，只画这一次。
-// 背景不再画在画布上（已透明），改由 CSS 的 night.png/day.png 提供，方便一键昼夜切换。
+// 构建静态层：每个滚轮的竖幅外观每帧都不变，只画一次。
+// 背景不再画在画布上，改由 CSS 的 night.png/day.png 提供，方便一键昼夜切换。
 function buildStaticLayer() {
   sctx.clearRect(0, 0, SCREEN_W, SCREEN_H);
   // 标题“超级抽抽乐”已包含在舞台背景图 night/day.png 里，画布只盖住屏幕区，不再绘制标题
@@ -1733,19 +1889,13 @@ function buildStaticLayer() {
         ROLLER_W, ROLLER_H);
     }
   }
-  // 版本号只保留 HTML 右下角那一个（#ver），画布上不再重复绘制
 }
 // ==================== 数字精灵图（滚动不卡顿的关键） ====================
-// 把所有编号预先画到一条长画布上：fillText 是 canvas 最耗时的操作之一，
-// 每帧最多 42 次 fillText 会造成明显卡顿；预渲染后每帧只做 drawImage 贴图，
-// drawImage 走 GPU 加速，比逐字 fillText 快一个数量级。
-// 数据变化时（rebuildReelData）重建一次即可，滚动期间零文本绘制。
 let numStrip = null;
-let numStripGray = null;                    // 未抽中：淡紫色（停止后渐变到它）
+let numStripGray = null;                    // 未抽中：淡紫色（停止后渐变）
 function buildNumStrip() {
   if (ITEM_COUNT === 0) { numStrip = null; numStripGray = null; return; }
-  // 竖幅内部是浅色底，数字必须用深色才看得清；中奖数字保持原色不变
-  numStrip = buildStrip("#4b2385");         // 滚动中 / 中奖：深紫（中奖数字不单独变色）
+  numStrip = buildStrip("#4b2385");         // 滚动中 / 深紫
   numStripGray = buildStrip("#b9a9dd");     // 停止后未中：淡紫
 }
 function buildStrip(color) {
@@ -1762,33 +1912,30 @@ function buildStrip(color) {
   }
   return strip;
 }
-// 画一个滚轮的动态数字（竖幅底板已在静态层里，这里只在竖幅内部填充区贴数字精灵图）
+// 画一个滚轮的动态数字
 function drawReel(i, offset, now) {
   if (!numStrip) return;
   const r = reelRect(i);
   const xc = r.x + r.w / 2;
-  // 预加载范围：窗口外上下各多画 3 格缓冲（滚轮窗口 clip 不变，看到的还是 4 格），
-  // 保证高速滚动时窗口边缘的数字永远提前就位，不会闪空
+  // 预加载范围：窗口外上下各多画 3 格缓冲（滚轮窗口 clip 不变，看到的还是 4 格），保证高速滚动时窗口边缘的数字永远提前就位，不会闪空
   const topLimit = r.y - 3 * ITEM_H;
   const bottomLimit = r.y + r.h + 2 * ITEM_H;
   ctx.save();
   ctx.beginPath();
-  // 裁切窗口做成胶囊形（上下半圆 + 中间直段），贴合卷轴上下收口的弧形，
-  // 数字在卷轴口处会被圆弧自然裁掉，不会出现方形硬边
+  // 裁切窗口做成胶囊形，贴合卷轴上下收口的弧形
   roundRect(ctx, xc - NUM_W / 2, r.y, NUM_W, r.h, CLIP_RADIUS);
   ctx.clip();
   // 变灰进度：滚轮停止后从 0 到 1，未抽中的数字按此进度从深紫渐变为淡紫
   const fade = reelStopped[i]
     ? Math.min((now - reelStopTimes[i]) / FADE_MS, 1)
     : 0;
-  // k 是“无限长数字带”上的序号（可跨圈、可为负），y 由 k*ITEM_H-offset 直接算出；
   // 中心格前后各画 5 格（窗口 4 格 + 上下缓冲各 3 格）
   const centerK = Math.round(offset / ITEM_H);
   for (let k = centerK - 5; k <= centerK + 5; k++) {
     const y = CENTER_Y + k * ITEM_H - offset;
     if (y < topLimit || y > bottomLimit) continue;
     const j = modIndex(k, ITEM_COUNT);
-    // 颜色逻辑：中奖数字保持深紫原色不变；其余数字滚动时深紫，停止后在 FADE_MS 内淡化为淡紫
+    // 颜色逻辑：中奖数字保持深紫原色不变；其余数字在滚动停止后淡化为淡紫
     const isTarget = j === targets[i];
     if (isTarget || fade === 0) {
       ctx.drawImage(numStrip, 0, j * ITEM_H, NUM_W, ITEM_H,
@@ -1822,12 +1969,12 @@ function draw(now) {
     let lines;
     if (subFolders.length === 0) {
       if (autoLoadStatus === "loading") {
-        lines = ["正在从网站加载抽奖数据，请稍候…"];
+        lines = ["正在加载抽奖数据，请稍候…"];
       } else {
-        lines = (autoLoadStatus + "\n\n点屏幕重试，或在「修改抽奖范围」里加入抽奖数据").split("\n");
+        lines = (autoLoadStatus + "\n\n点屏幕重试，或加入新的抽奖数据").split("\n");
       }
     } else {
-      lines = ["所有文件夹都未勾选", "点「修改抽奖范围」勾选至少一个文件夹"];
+      lines = ["所有分组都未勾选", "请勾选至少一个分组"];
     }
     const lh = 24;
     lines.forEach((line, i) => {
@@ -1844,13 +1991,11 @@ function draw(now) {
 }
 
 // ==================== 主循环 ====================
-// 优化：完全静止（非抽奖、变灰已结束、无数据提示不变）时停止 requestAnimationFrame，
-// 省手机电量；有状态变化时通过 requestFrame() 重新唤醒。
 let rafId = 0;
 function frame(now) {
   update(now);
   draw(now);
-  // 判断是否还需要继续画：抽奖中肯定要画；刚停的滚轮还在变灰也要画
+  // 判断是否还需要继续画
   const stillFading = reelStopped.some((s, i) =>
     s && (now - reelStopTimes[i]) < FADE_MS);
   if (state === "spinning" || stillFading) {
@@ -1866,10 +2011,8 @@ function requestFrame() {
 requestFrame();
 
 // ==================== 点击处理 ====================
-// 手机触摸后，部分安卓浏览器（百度/微信等内核）即使在 touchstart 里 preventDefault，
-// 仍会补发一次 mousedown —— 同一个点按触发两次逻辑：
-// −/＋ 会一次跳两格、弹窗会瞬间开了又关，表现就是“按钮不灵敏/乱跳”。
-// 记录最后一次触摸时间，700ms 内的合成鼠标事件直接丢弃。
+// 手机触摸后，部分安卓浏览器（百度/微信等内核）即使在 touchstart 里 preventDefault，仍会补发一次 mousedown —— 同一个点按触发两次逻辑：
+// −/＋ 会一次跳两格、弹窗会瞬间开了又关，表现就是“按钮不灵敏/乱跳”。记录最后一次触摸时间，700ms 内的合成鼠标事件直接丢弃。
 let lastTouchAt = 0;
 canvas.addEventListener("mousedown", e => {
   if (performance.now() - lastTouchAt < 700) return;
@@ -1884,18 +2027,12 @@ canvas.addEventListener("touchstart", e => {
 function getCanvasPos(e) {
   const rect = canvas.getBoundingClientRect();
   if (!isRotatedView()) {
-    // 横屏/电脑：未旋转，按包围盒等比换算即可
+    // 横屏/电脑：不旋转，按包围盒等比换算即可
     return {
       x: (e.clientX - rect.left) * (canvas.width / rect.width),
       y: (e.clientY - rect.top) * (canvas.height / rect.height)
     };
   }
-  // 竖屏：画布被顺时针旋转了 90°，rect 的宽其实是“画布高×缩放”、
-  // rect 的高其实是“画布宽×缩放”。旋转关系（相对画布中心）：
-  //   屏幕位移 (sx, sy) = 缩放 × (−画布dy, +画布dx)
-  // 逆变换：画布dx = sy/缩放，画布dy = −sx/缩放。
-  // 不做这一步，屏幕中心附近的点歪打正着能点中，
-  // 但屏幕右侧（对应画布顶部的 −/＋ 按钮）会映射到画布空地，永远点不中。
   const s = rect.width / canvas.height;      // = rect.height / canvas.width
   const sx = e.clientX - (rect.left + rect.width / 2);
   const sy = e.clientY - (rect.top + rect.height / 2);
@@ -1918,8 +2055,7 @@ function handleClick(pos) {
     return;
   }
   if (ITEM_COUNT === 0) return;                // 没数据时滚轮不可点
-  // 整个滚轮窗口都可以点（之前只有中间一格 72px 能点，手机上很容易点空，
-  // 误以为“不灵敏”）；点中哪个滚轮就弹哪个滚轮当前的中奖结果
+  // 整个滚轮窗口都可以点
   for (let i = 0; i < reelCount; i++) {
     if (inRect(pos, reelRect(i))) {
       openPopup(activeItems[resultIndexes[i]]);
@@ -1932,10 +2068,10 @@ function handleClick(pos) {
 const overlay = document.getElementById("overlay");
 const popImg = document.getElementById("popImg");
 const detailText = document.getElementById("detailText");
-// 只显示文字（无图，或图片加载失败时也走这里），文字装在和图片同款的灰底框里并居中
+// 只显示文字（无图，或图片加载失败时也走这里），文字装在和图片同款的底框里并居中
 function showPopupText(item) {
   popImg.classList.remove("show");
-  const raw = item.detail || "（无额外说明）";
+  const raw = item.detail || "（无额外细节说明）";
   const safe = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;")
                   .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   detailText.innerHTML = '<div class="detail-inner">' + safe + '</div>';
@@ -1966,13 +2102,13 @@ function openPopup(item) {
 }
 function closePopup() {
   overlay.classList.remove("show");
+  overlay.classList.remove("preview");      // 退出「查看」预览层级，回到数据编辑弹窗
 }
-// 只能通过标题栏右上角的 X 关闭（不再支持点击弹窗外空白处）
+// 只能通过标题栏右上角的 X 关闭
 document.querySelector("#panel .m-close").addEventListener("click", closePopup);
 
-// ==================== 通用消息/确认弹窗（替代系统 alert/confirm） ====================
-// 系统弹窗在手机上永远竖屏，和旋转后的游戏画面方向冲突；
-// 自定义弹窗在 #uiLayer 里，会跟着一起转成横屏。
+// ==================== 通用消息/确认弹窗（替代系统） ====================
+// 系统弹窗在手机上永远竖屏，和旋转后的游戏画面方向冲突；自定义弹窗在 #uiLayer 里，会跟着一起转成横屏。
 const msgOverlay = document.getElementById("msgOverlay");
 const msgText = document.getElementById("msgText");
 const msgOkBtn = document.getElementById("msgOk");
@@ -1981,7 +2117,7 @@ function closeMsg(result) {
   msgOverlay.classList.remove("show");
   if (msgResolve) { const r = msgResolve; msgResolve = null; r(result); }
 }
-// 提示弹窗（等价 alert）：只有「确定」和标题栏 X
+// 提示弹窗：只有「确定」和标题栏 X
 function showMessage(text) {
   return new Promise(resolve => {
     msgText.textContent = text;
@@ -1990,7 +2126,7 @@ function showMessage(text) {
     msgOverlay.classList.add("show");
   });
 }
-// 确认弹窗（等价 confirm）：「确定」返回 true；标题栏 X 等价取消返回 false
+// 确认弹窗：「确定」返回 true；标题栏 X 等价取消返回 false
 function showConfirm(text) {
   return new Promise(resolve => {
     msgText.textContent = text;
@@ -2000,11 +2136,11 @@ function showConfirm(text) {
   });
 }
 msgOkBtn.addEventListener("click", () => closeMsg(true));
-// 标题栏 X：等价于“取消”（业务方只认 true，返回 false 即放弃操作）
+// 标题栏 X
 document.querySelector("#msgPanel .m-close").addEventListener("click", () => closeMsg(false));
 
 // ==================== 开发者验证（右上“秋”logo → 密码弹窗） ====================
-// 明文密码不写在代码里，只存 SHA-256 哈希；输入后哈希比对，一致才放行
+// 明文密码不写在代码里，只存 SHA-256 哈希
 const DEV_HASH = "877a65e9c3229ad9618886aabbdaa10c91b464b541bbf04ec445da31702b22c9";
 const devOverlay = document.getElementById("devOverlay");
 const devPwdInput = document.getElementById("devPwdInput");
@@ -2017,19 +2153,19 @@ function openDevLogin() {
   devOverlay.classList.add("show");
   devPwdInput.focus();
 }
-// 只有右上“秋”logo 触发认证；版本号小字不再可点
+// 只有右上“秋”logo 触发认证
 document.getElementById("btnDevLogo").addEventListener("click", openDevLogin);
 function closeDevLogin() { devOverlay.classList.remove("show"); }
 document.querySelector("#devPanel .m-close").addEventListener("click", closeDevLogin);
-// 数据弹窗标题栏 X：等价取消（不保存）
+// 数据弹窗标题栏 X
 document.querySelector("#dataPanel .m-close").addEventListener("click", closeDataOverlay);
 async function tryDevLogin() {
   const hash = await sha256Hex(devPwdInput.value);
   if (hash === DEV_HASH) {
     devOverlay.classList.remove("show");
-    showMessage("欢迎开发者--秋鸣");
+    showMessage("欢迎开发者>>>秋鸣");
   } else {
-    devOverlay.classList.remove("show");   // 失败也要先关闭密码输入弹窗
+    devOverlay.classList.remove("show");   // 失败会先关闭密码输入弹窗
     showMessage("密码错误");
   }
 }
@@ -2038,14 +2174,7 @@ devPwdInput.addEventListener("keydown", e => {
   if (e.key === "Enter") tryDevLogin();
 });
 
-// ==================== 在线数据自动加载（手机无需手动选文件夹） ====================
-// 页面和数据在同一个站点（GitHub Pages）上，可以直接 fetch 读取，
-// 不再依赖手机浏览器支持很差的“选择文件夹”功能。
-// slot_assets/manifest.json 是文件夹清单：
-//   { "folders": [ {"name":"鸣潮", "path":"鸣潮"}, ... ] }
-// 每个文件夹下放「抽奖数据.txt」（格式与手动导入完全相同）和配图。
-// 加载成功后写入 localStorage，以后离线也能玩；同名文件夹不重复加载。
-// 自动加载状态：loading=进行中；ok=成功；其它字符串=给用户看的失败原因
+// ==================== 在线数据自动加载 ====================
 let autoLoadStatus = "loading";
 async function autoLoadOnlineData() {
   autoLoadStatus = "loading";
@@ -2093,7 +2222,7 @@ async function autoLoadOnlineData() {
   } catch (e) {
     // 本地双击打开（file://）或完全离线时 fetch 会抛错
     autoLoadStatus = "网络请求失败：" + (e && e.message ? e.message : e) +
-      "\n请联网后点屏幕重试";
+      "\n请联网后重试";
   } finally {
     requestFrame();        // 无论成功/失败/提前 return，都唤醒重绘刷新画布提示
   }
