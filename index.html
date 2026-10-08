@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>超级抽抽乐</title>
+<!-- 白天背景图预取：页面空闲时提前下载，切昼夜不用现等 -->
+<link rel="prefetch" href="slot_assets/day.jpg" as="image">
 <style>
   /* 页面底色：浅紫（#ceb1f0） */
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,12 +38,12 @@
     height: 506.25px;                 /* =900×9/16，与背景图同比例 */
     transform-origin: center center;
     /* 旋转时保持宽高比 */
-    background-image: url("slot_assets/night.png");  /* 默认夜晚图 */
+    background-image: url("slot_assets/night.jpg");  /* 默认夜晚图（JPEG 比 PNG 小 5 倍，手机加载快） */
     background-size: 100% 100%;
     background-repeat: no-repeat;
     transition: background-image 0.3s;
   }
-  #stage.day { background-image: url("slot_assets/day.png"); }
+  #stage.day { background-image: url("slot_assets/day.jpg"); }
   canvas {
     display: block;
     position: absolute;
@@ -863,7 +865,7 @@
   <!-- 右下角昼夜背景切换热区（药丸外观画在背景图里） -->
   <button id="bgToggle" aria-label="切换昼夜背景"></button>
   <!-- 版本号：标题右下角小字，仅用于确认文件版本 -->
-  <div id="ver">v39</div>
+  <div id="ver">v41</div>
   <!-- 底部按钮栏：两个按钮均已隐藏（开始判定在 GO!，范围修改在左侧栏），绑定代码保留 -->
   <div id="btnBar">
     <button class="btn" id="btnStart">开始抽奖</button>
@@ -1520,12 +1522,23 @@ function renderScopeList() {
 const ctxMenu = document.getElementById("ctxMenu");
 let ctxTarget = null;                        // 菜单当前对应的文件夹名
 let ctxPressTimer = 0;
-// 屏幕坐标 → 舞台坐标：整个舞台被 scale 缩放过，按包围盒比例换算
+// 屏幕坐标 → 舞台坐标：竖屏时舞台被旋转了 90°，要用旋转逆变换
+// （原理同 getCanvasPos：先算相对包围盒中心的偏移，再转回舞台本地坐标）
 function stagePos(clientX, clientY) {
   const rect = document.getElementById("stage").getBoundingClientRect();
+  if (!isRotatedView()) {
+    // 横屏/电脑：未旋转，按包围盒等比换算即可
+    return {
+      x: (clientX - rect.left) * STAGE_W / rect.width,
+      y: (clientY - rect.top) * STAGE_H / rect.height
+    };
+  }
+  const s = rect.width / STAGE_H;    // 包围盒宽对应舞台高，此比例即 客户端像素→舞台像素
+  const dx = clientX - (rect.left + rect.width / 2);
+  const dy = clientY - (rect.top + rect.height / 2);
   return {
-    x: (clientX - rect.left) * 900 / rect.width,
-    y: (clientY - rect.top) * 506.25 / rect.height
+    x: STAGE_W / 2 + dy / s,
+    y: STAGE_H / 2 - dx / s
   };
 }
 function showCtxMenu(name, pos) {
@@ -1699,7 +1712,7 @@ const rollerImg = new Image();
 rollerImg.onload = () => { buildStaticLayer(); requestFrame(); };
 rollerImg.src = "slot_assets/roller.png";
 // ==================== 抽奖时间配置（按滚轮序号动态计算，数量可变） ====================
-const TOTAL_SPIN = 6.0;
+const TOTAL_SPIN = 8.0;
 const STOP_INTERVAL = 0.8;
 // 第 i 个滚轮的停止时刻/滚动圈数：越靠后的滚轮停得越晚、滚得越久
 function stopTimeFor(i) { return TOTAL_SPIN - STOP_INTERVAL * (reelCount - 1 - i); }
@@ -2176,6 +2189,13 @@ devPwdInput.addEventListener("keydown", e => {
 
 // ==================== 在线数据自动加载 ====================
 let autoLoadStatus = "loading";
+// 空闲预载：把在线素材里的图片提前下载进浏览器缓存（跳过 dataURL，那种不联网）
+function preloadItemImages() {
+  for (const f of subFolders)
+    for (const it of f.items)
+      if (it.image && !it.image.startsWith("data:"))
+        new Image().src = it.image;            // 触发下载即可，无需等待加载完成
+}
 async function autoLoadOnlineData() {
   autoLoadStatus = "loading";
   try {
@@ -2214,6 +2234,7 @@ async function autoLoadOnlineData() {
       saveFolders();
       rebuildReelData();
       autoLoadStatus = "ok";
+      preloadItemImages();                     // 趁空闲把素材图片拉进缓存，弹窗秒开
     } else {
       autoLoadStatus = fails.length
         ? "数据加载失败：" + fails.join("、")
