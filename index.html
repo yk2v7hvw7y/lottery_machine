@@ -154,7 +154,7 @@
     overflow-y: auto;                /* 范围太多时在灰框里滚动 */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    touch-action: auto;              /* 让浏览器自判滚动方向，竖屏旋转后才能正确跟随 */
     font-size: 10px;
     color: #4b2385;
     scrollbar-width: thin;
@@ -355,6 +355,7 @@
     overflow-y: auto;                    /* 说明太长时只有灰框内部这一条滚动条 */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    touch-action: auto;                  /* 让浏览器自判滚动方向，竖屏旋转后才能正确跟随 */
     color: #4b2385;                        /* 淡紫底上用深紫字 */
     font-size: 26px;
     line-height: 1.8;
@@ -418,7 +419,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    touch-action: auto;              /* 让浏览器自判滚动方向，竖屏旋转后才能正确跟随 */
   }
   #dataTitle, #dataDesc, #dataBtns, #folderNameInput, #itemsToolRow { flex: none; }
   #dataTitle { display: none; }   /* 标题改由 menu 皮肤标题栏显示（红心右侧） */
@@ -447,7 +448,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;   /* iOS 动量滚动 */
     overscroll-behavior: contain;
-    touch-action: pan-y;                 /* 旋转缩放容器里允许竖向拖动滚动 */
+    touch-action: auto;                  /* 让浏览器自判滚动方向，竖屏旋转后才能正确跟随 */
     margin-bottom: 14px;
   }
   .folder-item {
@@ -639,7 +640,7 @@
     text-align: left;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    touch-action: auto;              /* 让浏览器自判滚动方向，竖屏旋转后才能正确跟随 */
   }
   #manualBody h2 { font-size: 22px; margin: 4px 0 10px; color: #d7198b; }
   #manualBody h3 { font-size: 18px; margin: 14px 0 6px; color: #7b3fb0; }
@@ -865,7 +866,7 @@
   <!-- 右下角昼夜背景切换热区（药丸外观画在背景图里） -->
   <button id="bgToggle" aria-label="切换昼夜背景"></button>
   <!-- 版本号：标题右下角小字，仅用于确认文件版本 -->
-  <div id="ver">v41</div>
+  <div id="ver">v43</div>
   <!-- 底部按钮栏：两个按钮均已隐藏（开始判定在 GO!，范围修改在左侧栏），绑定代码保留 -->
   <div id="btnBar">
     <button class="btn" id="btnStart">开始抽奖</button>
